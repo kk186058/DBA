@@ -1,0 +1,68 @@
+WITH RECURSIVE All_databases
+(OwnerName,
+DatabaseName,
+Depth,
+ProfileName,
+AccountName,
+PermSpace,
+TempSpace,
+SpoolSpace,
+ProtectionType,
+JournalFlag ,
+CommentString,
+DefaultDataBase,
+RowType,
+RoleName,
+PermSkewLimit ,
+SpoolSkewLimit ,
+TempSkewLimit
+) AS
+(
+SELECT 
+db.OwnerName,db.DatabaseName,0 AS Depth,
+db.ProfileName,
+
+db.AccountName,
+Cast(Cast(db.permspace AS BIGINT) AS VARCHAR(1000)),
+Cast(Cast(db.tempspace AS BIGINT) AS VARCHAR(1000)),
+Cast(Cast(db.spoolspace AS BIGINT) AS VARCHAR(1000)),
+ProtectionType,
+JournalFlag ,
+CommentString,
+DefaultDataBase,
+RowType,
+RoleName,
+PermSkewLimit ,
+SpoolSkewLimit ,
+TempSkewLimit
+
+FROM dbc.dbase db
+
+WHERE db.databasename = '${DATABASE}'
+UNION ALL
+SELECT  
+db.ownername,db.databasename, depth+1,
+db.profilename,
+db.accountname,
+Cast(Cast(db.permspace AS BIGINT) AS VARCHAR(1000)),
+Cast(Cast(db.tempspace AS BIGINT) AS VARCHAR(1000)),
+Cast(Cast(db.spoolspace AS BIGINT) AS VARCHAR(1000)),
+db.ProtectionType,
+db.JournalFlag ,
+db.CommentString,
+db.DefaultDataBase,
+db.RowType,
+db.RoleName,
+db.PermSkewLimit ,
+db.SpoolSkewLimit ,
+db.TempSkewLimit
+
+		
+FROM All_databases INNER JOIN  dbc.dbase db
+ON   All_databases.databasename = db .ownername 
+AND  All_databases.Depth < 15
+
+)
+SELECT DISTINCT * FROM All_databases
+order by depth, databasename
+;
