@@ -1,0 +1,3 @@
+SEL *
+FROM dbc.roles
+;
