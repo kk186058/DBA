@@ -1,5 +1,8 @@
 SEL *
 FROM dbc.allrolerights
-WHERE databasename NOT LIKE ALL ( 'sys%')
-AND databasename <> 'dbc'
+WHERE  (databasename in ('${scope}') or databasename in ('${users}') or databasename in ('dbc', 'sys_calendar') )
+and rolename in (   SEL rolename
+                    FROM dbc.rolemembers
+                    where  ( grantee in ('${scope}') or grantee in ('${users}'))
+                    )
 ;

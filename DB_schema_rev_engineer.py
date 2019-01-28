@@ -10,7 +10,22 @@ import os
 pd.set_option('display.width', 1000)
 pd.set_option('display.max_columns', 500)
 
-filename = 'schema.xlsx'
+import sys
+from time import strftime, localtime
+
+import pandas as pd
+pd.set_option('display.width', 1000)
+pd.set_option('display.max_columns', 500)
+
+scanstart = strftime("%Y-%m-%d %H:%M:%S", localtime())
+filestart = strftime("%Y%m%d%H%M", localtime())
+
+print("Running python script :" + sys.argv[0] + " on " + scanstart)
+
+db_root = 'dbadmin'
+usr_root = 'useradmin'
+
+filename = 'schema' + filestart + '.xlsx'
 
 try:
     os.remove(filename)
@@ -18,11 +33,12 @@ except OSError:
     pass
 
 
-def fun_database_objects(filename):
+def fun_database_objects(filename, root = 'dbadmin', scope = 'all',users='all'):
     conn = pyodbc.connect('DRIVER={Teradata};DBCNAME=TDVMWARE;UID=dbc;PWD=dbc;QUIETMODE=YES;')
 
     with open('SQL/' + filename, 'r') as myfile:
-        sql = myfile.read().replace('${DATABASE}', 'dbadmin')
+        sql = myfile.read().replace('${DATABASE}', root).replace('${scope}', scope).replace('${users}', users)
+        # print('sql; : ' + sql)
 
     Data = pd.read_sql(sql, conn)
     Data = Data.astype('str')
@@ -66,17 +82,25 @@ def fun_excel(in_df,in_sheet):
     writer.save()
     writer.close()
 
-df_lst = fun_database_objects('DB_schema_rev_engineer_list.sql')
+df_lst = fun_database_objects('DB_schema_rev_engineer_list.sql', db_root)
 df_hier = fun_database_objects('DB_schema_rev_engineer_hier.sql')
-df_roles = fun_database_objects('DB_schema_rev_engineer_Roles.sql')
-df_profiles = fun_database_objects('DB_schema_rev_engineer_Profiles.sql')
+df_usr = fun_database_objects('DB_schema_rev_engineer_list.sql', usr_root)
 
-df_role_members = fun_database_objects('DB_schema_rev_engineer_Role_members.sql')
-df_role_access = fun_database_objects('DB_schema_rev_engineer_Role_rights.sql')
-df_db_access = fun_database_objects('DB_schema_rev_engineer_allrights.sql')
+db_in_scope = df_lst['DatabaseName'].values
+db_in_scope = '\',\''.join(db_in_scope)
 
-lst_df = [df_lst, df_hier, df_roles, df_profiles, df_role_members, df_role_access, df_db_access]
-lst_tabs = ['DB_list', 'DB_hier', 'DB_Roles', 'DB_Profiles','DB_Role_mems', 'DB_Role_rights', 'DB_allrights']
+db_usr_in_scope = df_usr['DatabaseName'].values
+db_usr_in_scope = '\',\''.join(db_usr_in_scope)
+
+df_roles = fun_database_objects('DB_schema_rev_engineer_Roles.sql','na',db_in_scope, db_usr_in_scope)
+df_profiles = fun_database_objects('DB_schema_rev_engineer_Profiles.sql','na',db_in_scope, db_usr_in_scope)
+
+df_role_members = fun_database_objects('DB_schema_rev_engineer_Role_members.sql','na',db_in_scope, db_usr_in_scope)
+df_role_access = fun_database_objects('DB_schema_rev_engineer_Role_rights.sql','na',db_in_scope, db_usr_in_scope)
+df_db_access = fun_database_objects('DB_schema_rev_engineer_allrights.sql','na',db_in_scope)
+
+lst_df = [df_lst, df_hier, df_usr, df_roles, df_profiles, df_role_members, df_role_access, df_db_access]
+lst_tabs = ['DB_list', 'DB_hier', 'df_users', 'DB_Roles', 'DB_Profiles','DB_Role_mems', 'DB_Role_rights', 'DB_allrights']
 
 fun_excel(lst_df,lst_tabs)
 
